@@ -1,0 +1,11 @@
+local player = game.Players.LocalPlayer
+local leaderstats = player:WaitForChild("leaderstats")
+local fatStat = leaderstats:WaitForChild("Fat")
+
+local gui = script.Parent
+local fatLabel = gui:WaitForChild("Frame"):WaitForChild("TextLabel")
+
+-- Update the fat value when it changes
+fatStat.Changed:Connect(function(newValue)
+    fatLabel.Text = "Fat: " .. tostring(newValue) -- Update the text
+end)

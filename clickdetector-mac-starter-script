@@ -1,0 +1,73 @@
+local debounce = false
+local baseFatPerClick = 1 -- Base fat per click
+local multiplier = 15 -- Multiplier for Big Mac area
+local fatPerClick = baseFatPerClick * multiplier -- Adjusted fat per click
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+script.Parent.ClickDetector.MouseClick:Connect(function(player)
+    if debounce then return end
+    debounce = true
+
+    local leaderstats = player:FindFirstChild("leaderstats")
+    if leaderstats then
+        local fat = leaderstats:FindFirstChild("Fat")
+        if fat then
+            fat.Value = fat.Value + fatPerClick
+
+            -- Display Fat Gain Effect in GUI
+            local gui = player.PlayerGui:FindFirstChild("FatEffectGui")
+            if gui then
+                local fatLabel = gui:FindFirstChild("FatEffect")
+                if fatLabel then
+                    fatLabel.Text = "+" .. tostring(fatPerClick) .. " Fat!"
+                    fatLabel.Visible = true
+
+                    -- Floating Animation
+                    local startPosition = fatLabel.Position
+                    for i = 1, 10 do
+                        fatLabel.Position = startPosition + UDim2.new(0, 0, -0.01 * i, 0) -- Float upwards
+                        wait(0.05)
+                    end
+
+                    -- Fade Out Effect
+                    for i = 1, 10 do
+                        fatLabel.TextTransparency = i / 10
+                        wait(0.05)
+                    end
+
+                    -- Reset for next use
+                    fatLabel.Visible = false
+                    fatLabel.Position = startPosition
+                    fatLabel.TextTransparency = 0
+                end
+            end
+
+            -- Play Eating Animation and Eating Sound
+            local character = player.Character
+            if character then
+                local humanoid = character:FindFirstChild("Humanoid")
+                if humanoid then
+                    -- Play Animation
+                    local animation = Instance.new("Animation")
+                    animation.AnimationId = "rbxassetid://YOUR_ANIMATION_ID" -- Replace with your eating animation ID
+                    local animTrack = humanoid:LoadAnimation(animation)
+                    animTrack:Play()
+
+                    -- Play Eating Sound Effect
+                    local eatingSound = Instance.new("Sound")
+                    eatingSound.SoundId = "rbxassetid://YOUR_SOUND_ID" -- Replace with your eating sound ID
+                    eatingSound.Volume = 1
+                    eatingSound.Parent = humanoid
+                    eatingSound:Play()
+                    eatingSound.Ended:Connect(function()
+                        eatingSound:Destroy()
+                    end)
+                end
+            end
+        end
+    end
+
+    wait(0.5) -- Cooldown for clicking
+    debounce = false
+end)
+

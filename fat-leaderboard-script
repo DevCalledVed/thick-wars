@@ -1,1 +1,10 @@
+-- i dont know if this works
+-- Script in ServerScriptService
+game.Players.PlayerAdded:Connect(function(player)
+    local leaderstats = Instance.new("Folder", player)
+    leaderstats.Name = "leaderstats"
 
+    local fat = Instance.new("IntValue", leaderstats)
+    fat.Name = "Fat"
+    fat.Value = 0
+end)

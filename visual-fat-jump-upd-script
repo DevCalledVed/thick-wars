@@ -1,1 +1,116 @@
+game.Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function(character)
+        local leaderstats = player:FindFirstChild("leaderstats")
+        if not leaderstats then return end
+
+        local fat = leaderstats:FindFirstChild("Fat")
+        if not fat then return end
+
+        local humanoid = character:WaitForChild("Humanoid")
+        local hrp = character:WaitForChild("HumanoidRootPart")
+
+        if not humanoid or not hrp then return end
+
+        -- Health Regeneration Variables
+        local isRegenerating = false
+        local regenDelay = 3 -- Delay before health regeneration starts
+        local regenRate = 0.075 -- Regenerate 7.5% of MaxHealth per second
+
+        -- Adjust Size, Jump Power, Speed, and Health
+        fat.Changed:Connect(function(newValue)
+            local scale = math.clamp(1 + (newValue / 100), 1, 10) -- Adjust scale based on fat
+            local jumpPower = math.clamp(50 + (newValue * 0.5), 50, 300) -- Adjust jump power based on fat
+            local walkSpeed = math.clamp(16 - (newValue / 50), 5, 16) -- Decrease speed as fat increases
+            local maxHealth = math.clamp(100 + (newValue * 2), 100, 1000) -- Increase health as fat increases
+
+            -- Scale Character
+            hrp.Size = Vector3.new(2, 2, 2) * scale
+            hrp.Massless = true
+
+            for _, part in pairs(character:GetChildren()) do
+                if part:IsA("BasePart") and part ~= hrp then
+                    part.Size = part.Size * scale / humanoid.BodyDepthScale.Value -- Relative scaling
+                    part.Massless = true
+                end
+            end
+
+            humanoid.BodyWidthScale.Value = scale
+            humanoid.BodyDepthScale.Value = scale
+            humanoid.HeadScale.Value = scale -- No height scaling (as requested)
+
+            -- Update Jump Power, Walk Speed, and Max Health
+            humanoid.JumpPower = jumpPower
+            humanoid.WalkSpeed = walkSpeed
+            humanoid.MaxHealth = maxHealth
+        end)
+
+        -- Health Regeneration Logic
+        humanoid.HealthChanged:Connect(function()
+            if humanoid.Health < humanoid.MaxHealth and not isRegenerating then
+                isRegenerating = true
+                task.delay(regenDelay, function()
+                    while humanoid.Health < humanoid.MaxHealth and humanoid.Health > 0 do
+                        humanoid.Health = math.min(humanoid.Health + humanoid.MaxHealth * regenRate, humanoid.MaxHealth)
+                        wait(1) -- Regenerate every second
+                    end
+                    isRegenerating = false -- Stop regenerating when at full health or dead
+                end)
+            end
+        end)
+
+        -- Jump Effects: Knockback and Landing Sound
+        humanoid.StateChanged:Connect(function(_, newState)
+            if newState == Enum.HumanoidStateType.Jumping then
+                -- Play Jump Animation
+                local animation = Instance.new("Animation")
+                animation.AnimationId = "rbxassetid://YOUR_JUMP_ANIMATION_ID" -- Replace with your jump animation ID
+                local animTrack = humanoid:LoadAnimation(animation)
+                animTrack:Play()
+
+                -- Apply Knockback to Nearby Objects (Including Players)
+                local knockbackRadius = fat.Value / 10 -- Radius increases with fat
+                local knockbackForce = fat.Value * 2 -- Force increases with fat
+
+                for _, obj in pairs(workspace:GetDescendants()) do
+                    if obj:IsA("BasePart") and obj ~= hrp and (obj.Position - hrp.Position).Magnitude <= knockbackRadius then
+                        local bodyVelocity = Instance.new("BodyVelocity")
+                        bodyVelocity.Velocity = (obj.Position - hrp.Position).Unit * knockbackForce
+                        bodyVelocity.MaxForce = Vector3.new(1e6, 1e6, 1e6)
+                        bodyVelocity.Parent = obj
+                        game:GetService("Debris"):AddItem(bodyVelocity, 0.2) -- Remove knockback force after 0.2 seconds
+                    end
+                end
+            elseif newState == Enum.HumanoidStateType.Landed then
+                -- Camera Shake for Local Player on Landing
+                local localPlayer = game.Players:GetPlayerFromCharacter(character)
+                if localPlayer then
+                    local camera = workspace.CurrentCamera
+                    local tweenService = game:GetService("TweenService")
+
+                    local shakeTween = TweenInfo.new(0.2, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+                    local startCFrame = camera.CFrame
+
+                    -- Create a stronger shake effect for landing
+                    local tween = tweenService:Create(camera, shakeTween, {CFrame = startCFrame * CFrame.new(0, 1, 0)})
+                    tween:Play()
+                    tween.Completed:Connect(function()
+                        camera.CFrame = startCFrame -- Reset camera position after shake
+                    end)
+                end
+
+                -- Play Landing Sound Effect
+                local landingSound = Instance.new("Sound")
+                landingSound.SoundId = "rbxassetid://YOUR_LANDING_SOUND_ID" -- Replace with your landing sound ID
+                landingSound.Volume = 1
+                landingSound.Parent = hrp
+                landingSound:Play()
+
+                -- Auto-remove sound after it plays
+                landingSound.Ended:Connect(function()
+                    landingSound:Destroy()
+                end)
+            end
+        end)
+    end)
+end)
 

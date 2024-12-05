@@ -1,0 +1,38 @@
+local safeZone = script.Parent
+local playersInSafeZone = {}
+
+-- Function to detect when a player enters the safe zone
+local function onTouch(hit)
+    local character = hit.Parent
+    local player = game.Players:GetPlayerFromCharacter(character)
+    if player and not playersInSafeZone[player] then
+        playersInSafeZone[player] = true
+        print(player.Name .. " is now in the safe zone.")
+    end
+end
+
+-- Function to detect when a player leaves the safe zone
+local function onTouchEnd(hit)
+    local character = hit.Parent
+    local player = game.Players:GetPlayerFromCharacter(character)
+    if player and playersInSafeZone[player] then
+        playersInSafeZone[player] = nil
+        print(player.Name .. " left the safe zone.")
+    end
+end
+
+-- Connect touch events to the SafeZone Part
+safeZone.Touched:Connect(onTouch)
+safeZone.TouchEnded:Connect(onTouchEnd)
+
+-- Prevent players in the safe zone from taking damage
+game:GetService("Players").PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function(character)
+        local humanoid = character:WaitForChild("Humanoid")
+        humanoid:GetPropertyChangedSignal("Health"):Connect(function()
+            if playersInSafeZone[player] then
+                humanoid.Health = humanoid.MaxHealth -- Reset health if damage is attempted
+            end
+        end)
+    end)
+end)
